@@ -1,6 +1,7 @@
 <?php
 
 use Yii;
+use common\services\LogoCatalog;
 use yii\helpers\Html;
 
 /** @var yii\web\View $this */
@@ -8,6 +9,8 @@ use yii\helpers\Html;
 /** @var array $sponsors */
 /** @var string $sort */
 /** @var \common\models\SiteConfig $siteConfig */
+/** @var \common\models\BenefitCategory[] $benefitCategories */
+/** @var int[] $featuredBusinessIds */
 
 $logoUrl = $siteConfig && $siteConfig->logo_path ? $siteConfig->logo_path : null;
 $defaultLogo = Yii::getAlias('@web/images/logo.png');
@@ -21,6 +24,30 @@ $logoStyle = [
     'height:' . $logoHeight . 'px',
     'object-fit:contain',
 ];
+
+$featuredLookup = array_fill_keys($featuredBusinessIds, true);
+$businessViewData = [];
+foreach ($businesses as $business) {
+    $categoryNames = array_map(static fn($category) => $category->name, $business->categories);
+    $categoryLine = $categoryNames ? implode(', ', $categoryNames) : 'N/A';
+    $whatsappDisplay = $business->whatsapp ?: 'N/A';
+    $emailDisplay = $business->email ?: 'N/A';
+    $businessViewData[$business->id] = [
+        'categoryNames' => $categoryNames,
+        'categoryLine' => $categoryLine,
+        'whatsapp' => $whatsappDisplay,
+        'email' => $emailDisplay,
+        'detailPayload' => [
+            'name' => $business->name,
+            'address' => $business->address,
+            'whatsapp' => $whatsappDisplay,
+            'email' => $emailDisplay,
+            'categories' => $categoryNames,
+            'socialLinks' => array_values($business->getSocialLinks()),
+            'description' => strip_tags((string)$business->description),
+        ],
+    ];
+}
 
 $this->title = 'La próxima generación de emails';
 ?>
@@ -37,13 +64,13 @@ $this->title = 'La próxima generación de emails';
                     ]) ?>
                 </div>
             <?php endif; ?>
-            <span class="hero-eyebrow">Bienvenidos</span>
+            <span class="hero-eyebrow">Cámara Inversionistas</span>
             <h1 class="hero-title">Cámara Inversionistas de Costa Rica.</h1>
             <p class="hero-subtitle">
                 Grupo empresarial de Costa Rica con más de 600 Aliados.
             </p>
             <div class="hero-actions">
-                <?= Html::a('Explorar componentes', '#componentes', ['class' => 'mdc-filled-button']) ?>
+                <?= Html::a('Directorio Comercial', '#componentes', ['class' => 'mdc-filled-button']) ?>
                 <?= Html::a('Ver documentación', '#docs', ['class' => 'mdc-outlined-button']) ?>
             </div>
         </div>
@@ -66,6 +93,34 @@ $this->title = 'La próxima generación de emails';
         </div>
     </div>
 </section>
+
+<?php if (!empty($businesses)): ?>
+<section class="ally-heading-section surface-container-low">
+    <div class="container-wide">
+        <h1 class="ally-heading">Empresas que confían en nosotros</h1>
+    </div>
+</section>
+<section class="ally-ticker-section surface-container">
+    <div class="container-wide">
+        <div class="ally-ticker" id="ally-ticker">
+            <div class="ally-ticker-track" id="ally-ticker-track">
+                <?php foreach ($businesses as $business): ?>
+                    <?php $viewData = $businessViewData[$business->id]; ?>
+                    <?php $detailJson = Html::encode(json_encode($viewData['detailPayload'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)); ?>
+                    <button type="button"
+                            class="ticker-item"
+                            data-details="<?= $detailJson ?>">
+                        <span class="ticker-logo">
+                            <?= Html::img($business->getAvatarUrl(), ['alt' => $business->name]) ?>
+                        </span>
+                        <span class="ticker-name"><?= Html::encode($business->name) ?></span>
+                    </button>
+                <?php endforeach; ?>
+            </div>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
 
 <section class="tools-section surface-container-low">
     <div class="container-wide tools-grid">
@@ -140,143 +195,328 @@ $this->title = 'La próxima generación de emails';
     </div>
 
     <div class="business-grid" id="business-grid">
-        <?php if (empty($businesses)): ?>
+        <?php if (empty($featuredBusinessIds)): ?>
             <div class="empty-state surface-container">
                 <h3>Aún no hay aliados publicados</h3>
-                <p>Agrega comercios desde el panel administrativo para verlos aquí.</p>
+                <p>Utiliza el buscador para explorar los aliados disponibles.</p>
             </div>
-        <?php else: ?>
-            <?php foreach ($businesses as $business): ?>
-                <?php
-                    $searchBlob = strtoupper(trim(implode(' ', array_filter([
-                        $business->name,
-                        $business->summary,
-                        $business->description,
-                        $business->whatsapp,
-                        $business->address,
-                        $business->email,
-                        implode(' ', array_map(static fn($category) => $category->name, $business->categories)),
-                    ]))));
-                ?>
-                <?php
-                    $detailPayload = [
-                        'name' => $business->name,
-                        'address' => $business->address,
-                        'whatsapp' => $business->whatsapp,
-                        'email' => $business->email,
-                        'categories' => array_map(static fn($category) => $category->name, $business->categories),
-                        'socialLinks' => array_values($business->getSocialLinks()),
-                        'description' => strip_tags((string)$business->description),
-                    ];
-                ?>
-                <article class="business-card surface-container-high"
-                         data-business-id="<?= Html::encode($business->id) ?>"
-                         data-search="<?= Html::encode($searchBlob) ?>">
-                    <div class="card-header">
-                        <div class="avatar">
-                            <?= Html::img($business->getAvatarUrl(), ['alt' => $business->name]) ?>
+        <?php endif; ?>
+        <?php foreach ($businesses as $business): ?>
+            <?php
+                $viewData = $businessViewData[$business->id];
+                $searchBlob = strtoupper(trim(implode(' ', array_filter([
+                    $business->name,
+                    $business->summary,
+                    $business->description,
+                    $viewData['whatsapp'],
+                    $business->address,
+                    $viewData['email'],
+                    implode(' ', $viewData['categoryNames']),
+                ]))));
+                $detailJson = Html::encode(json_encode($viewData['detailPayload'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES));
+                $isFeatured = isset($featuredLookup[$business->id]);
+            ?>
+            <article class="business-card surface-container-high<?= $isFeatured ? '' : ' hidden-by-default' ?>"
+                     data-business-id="<?= Html::encode($business->id) ?>"
+                     data-search="<?= Html::encode($searchBlob) ?>"
+                     data-featured="<?= $isFeatured ? '1' : '0' ?>">
+                <div class="card-header">
+                    <div class="avatar">
+                        <?= Html::img($business->getAvatarUrl(), ['alt' => $business->name]) ?>
+                    </div>
+                    <div>
+                        <h3><?= Html::encode($business->name) ?></h3>
+                        <div class="business-category-line">
+                            <span><?= Html::encode($viewData['categoryLine']) ?></span>
                         </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <?php if (!empty($business->summary) || !empty($business->description)): ?>
+                        <p class="business-description">
+                            <?= Html::encode($business->summary ?: strip_tags($business->description)) ?>
+                        </p>
+                    <?php endif; ?>
+                    <ul class="info-list">
+                        <li>
+                            <span class="material-symbols-outlined">location_on</span>
+                            <span><?= Html::encode($business->address) ?></span>
+                        </li>
+                        <li>
+                            <span class="material-symbols-outlined">smartphone</span>
+                            <span><?= Html::encode($viewData['whatsapp']) ?></span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-footer">
+                    <div class="email-image">
+                        <?= Html::img($business->getEmailImage(), [
+                            'alt' => 'Correo de ' . $business->name,
+                            'loading' => 'lazy',
+                        ]) ?>
+                    </div>
+                    <div class="card-actions">
+                        <div class="icon-actions">
+                        <button
+                            type="button"
+                            class="icon-button open-contact-modal"
+                            title="Contactar aliado"
+                            data-business='<?= Html::encode(json_encode([
+                                'id' => $business->id,
+                                'name' => $business->name,
+                                'contactUrl' => $business->contactUrl,
+                            ])) ?>'>
+                            <span class="material-symbols-outlined">mail</span>
+                        </button>
+                        <button
+                            type="button"
+                            class="icon-button open-share"
+                            title="Compartir aliado"
+                            data-share='<?= $detailJson ?>'>
+                            <span class="material-symbols-outlined">share</span>
+                        </button>
+                        </div>
+                        <button
+                            type="button"
+                            class="info-button open-info-modal"
+                            data-details='<?= $detailJson ?>'>
+                            Ver información
+                        </button>
+                    </div>
+                </div>
+            </article>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+<?php
+$maxLocationValue = $locationStats ? max(array_column($locationStats, 'total')) : 1;
+$distributionTotal = $categoryDistribution ? array_sum(array_column($categoryDistribution, 'total')) : 1;
+?>
+
+<section class="insights-section surface-container-high">
+    <div class="container-wide insights-grid">
+        <div class="insight-card highlight">
+            <span class="insight-label">Aliados registrados</span>
+            <h3><?= number_format($alliesCount) ?></h3>
+            <p>Empresas activas dentro del directorio comercial.</p>
+        </div>
+        <div class="insight-card">
+            <div class="insight-head">
+                <h4>Presencia por ubicación</h4>
+                <span class="insight-subtitle">Top 5 ubicaciones</span>
+            </div>
+            <ul class="stat-list">
+                <?php if ($locationStats): ?>
+                    <?php foreach (array_slice($locationStats, 0, 5) as $row): ?>
+                        <?php $percent = $maxLocationValue ? round(($row['total'] / $maxLocationValue) * 100) : 0; ?>
+                        <li>
+                            <div class="stat-info">
+                                <strong><?= Html::encode($row['location'] ?: 'Sin dirección') ?></strong>
+                                <div class="stat-bar">
+                                    <span style="width: <?= $percent ?>%"></span>
+                                </div>
+                            </div>
+                            <span class="stat-value"><?= $row['total'] ?></span>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li class="stat-empty">No hay datos suficientes.</li>
+                <?php endif; ?>
+            </ul>
+            <?= Html::a('Descargar PDF', ['site/location-report'], [
+                'class' => 'mini-button',
+                'target' => '_blank',
+                'rel' => 'noopener',
+            ]) ?>
+        </div>
+        <div class="insight-card">
+            <div class="insight-head">
+                <h4>Categorías más buscadas</h4>
+                <span class="insight-subtitle">Ranking TOP</span>
+            </div>
+            <ol class="ranking-list">
+                <?php if ($categoryRanking): ?>
+                    <?php foreach ($categoryRanking as $index => $category): ?>
+                        <li>
+                            <span class="rank-number"><?= $index + 1 ?></span>
+                            <div>
+                                <strong><?= Html::encode($category['category_name']) ?></strong>
+                                <span><?= $category['total'] ?> aliados</span>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li class="stat-empty">Sin registros.</li>
+                <?php endif; ?>
+            </ol>
+            <button type="button" class="mini-button open-dashboard-modal" data-target="#ranking-modal">Ver detalles</button>
+        </div>
+        <div class="insight-card">
+            <div class="insight-head">
+                <h4>Distribución por categoría</h4>
+                <span class="insight-subtitle">Participación porcentual</span>
+            </div>
+            <ul class="stat-list compact">
+                <?php if ($categoryDistribution): ?>
+                    <?php foreach ($categoryDistribution as $category): ?>
+                        <?php $percent = $distributionTotal ? round(($category['total'] / $distributionTotal) * 100) : 0; ?>
+                        <li>
+                            <div class="stat-info">
+                                <strong><?= Html::encode($category['category_name']) ?></strong>
+                                <div class="stat-bar">
+                                    <span style="width: <?= $percent ?>%"></span>
+                                </div>
+                            </div>
+                            <span class="stat-value"><?= $percent ?>%</span>
+                        </li>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <li class="stat-empty">Sin datos aún.</li>
+                <?php endif; ?>
+            </ul>
+            <button type="button" class="mini-button open-dashboard-modal" data-target="#distribution-modal">Ver detalles</button>
+        </div>
+    </div>
+</section>
+
+<div id="ranking-modal" class="contact-modal" data-state="closed">
+    <div class="modal-overlay"></div>
+    <div class="modal-card surface-container-high">
+        <button class="modal-close material-symbols-outlined" type="button">close</button>
+        <div class="modal-header">
+            <span class="hero-eyebrow">Ranking</span>
+            <h3>Categorías más buscadas</h3>
+        </div>
+        <div class="info-modal-body">
+            <ol class="ranking-list">
+                <?php foreach ($categoryRanking as $index => $category): ?>
+                    <li>
+                        <span class="rank-number"><?= $index + 1 ?></span>
                         <div>
-                            <h3><?= Html::encode($business->name) ?></h3>
-                            <?php if ($business->categories): ?>
-                                <div class="business-category-line">
-                                    <?php foreach ($business->categories as $index => $category): ?>
-                                        <span><?= Html::encode($category->name) ?><?= $index < count($business->categories) - 1 ? ', ' : '' ?></span>
-                                    <?php endforeach; ?>
+                            <strong><?= Html::encode($category['category_name']) ?></strong>
+                            <span><?= $category['total'] ?> aliados</span>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<div id="distribution-modal" class="contact-modal" data-state="closed">
+    <div class="modal-overlay"></div>
+    <div class="modal-card surface-container-high">
+        <button class="modal-close material-symbols-outlined" type="button">close</button>
+        <div class="modal-header">
+            <span class="hero-eyebrow">Distribución</span>
+            <h3>Aliados por categoría</h3>
+        </div>
+        <div class="info-modal-body">
+            <ul class="stat-list compact">
+                <?php foreach ($categoryDistribution as $category): ?>
+                    <li>
+                        <div class="stat-info">
+                            <strong><?= Html::encode($category['category_name']) ?></strong>
+                        </div>
+                        <span class="stat-value"><?= $category['total'] ?> aliados</span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<section id="beneficios" class="benefits-section surface-container-high">
+    <div class="container-wide">
+        <header class="section-header simple">
+            <div>
+                <h2 class="section-title">Listado de Beneficios</h2>
+                <h3 class="section-subtitle">Cámara de Inversionistas de Costa Rica</h3>
+            </div>
+            <div class="section-actions">
+                <?= Html::a('Descargar Listado de Beneficios', ['site/benefit-report'], [
+                    'class' => 'benefit-download-button',
+                    'target' => '_blank',
+                    'rel' => 'noopener',
+                ]) ?>
+            </div>
+        </header>
+
+        <?php if (!empty($benefitCategories)): ?>
+            <?php $benefitCounter = 1; ?>
+            <div class="benefits-ledger">
+                <?php foreach ($benefitCategories as $category): ?>
+                    <?php
+                    $categoryLogo = LogoCatalog::getUrl($category->logo);
+                    $hasBenefits = !empty($category->benefits);
+                    ?>
+                    <div class="benefits-category surface-container">
+                        <div class="category-header">
+                            <?php if ($categoryLogo): ?>
+                                <div class="category-logo">
+                                    <?= Html::img($categoryLogo, [
+                                        'alt' => 'Icono ' . ($category->name ?? ''),
+                                        'loading' => 'lazy',
+                                    ]) ?>
                                 </div>
                             <?php endif; ?>
+                            <div class="category-copy">
+                                <h3><?= Html::encode($category->name) ?></h3>
+                                <?php if ($category->description): ?>
+                                    <p><?= Html::encode($category->description) ?></p>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
-                    <div class="card-body">
-                        <?php if (!empty($business->summary) || !empty($business->description)): ?>
-                            <p class="business-description">
-                                <?= Html::encode($business->summary ?: strip_tags($business->description)) ?>
-                            </p>
-                        <?php endif; ?>
-                        <ul class="info-list">
-                            <li>
-                                <span class="material-symbols-outlined">location_on</span>
-                                <span><?= Html::encode($business->address) ?></span>
-                            </li>
-                            <li>
-                                <span class="material-symbols-outlined">smartphone</span>
-                                <span><?= Html::encode($business->whatsapp) ?></span>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="card-footer">
-                        <div class="email-image">
-                            <?= Html::img($business->getEmailImage(), [
-                                'alt' => 'Correo de ' . $business->name,
-                                'loading' => 'lazy',
-                            ]) ?>
+
+                    <?php if ($hasBenefits): ?>
+                        <?php foreach ($category->benefits as $benefit): ?>
+                            <?php
+                            $benefitLogo = LogoCatalog::getUrl($benefit->logo) ?: $categoryLogo;
+                            ?>
+                            <div
+                                class="benefit-row surface-container"
+                                role="button"
+                                tabindex="0"
+                                aria-label="Solicitar información sobre <?= Html::encode($benefit->title) ?>"
+                                data-benefit-title="<?= Html::encode($benefit->title) ?>"
+                                data-category-name="<?= Html::encode($category->name) ?>"
+                            >
+                                <span class="benefit-index"><?= str_pad((string)$benefitCounter++, 2, '0', STR_PAD_LEFT) ?></span>
+                            <div class="benefit-copy">
+                                    <h4><?= Html::encode($benefit->title) ?></h4>
+                                    <?php if ($benefit->description): ?>
+                                        <p><?= nl2br(Html::encode($benefit->description)) ?></p>
+                                    <?php endif; ?>
+                            </div>
+                                <div class="benefit-cta">
+                                    <?php if ($benefitLogo): ?>
+                                        <div class="benefit-logo">
+                                            <?= Html::img($benefitLogo, [
+                                                'alt' => 'Logo beneficio',
+                                                'loading' => 'lazy',
+                                            ]) ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <button type="button" class="benefit-action">Haz clic para solicitar</button>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="benefit-row surface-container empty">
+                            <div class="benefit-copy">
+                                <p>Aún no hay beneficios registrados para esta categoría.</p>
+                            </div>
                         </div>
-                        <div class="card-actions">
-                            <button
-                                type="button"
-                                class="icon-button open-contact-modal"
-                                title="Contactar aliado"
-                                data-business='<?= Html::encode(json_encode([
-                                    'id' => $business->id,
-                                    'name' => $business->name,
-                                    'contactUrl' => $business->contactUrl,
-                                ])) ?>'>
-                                <span class="material-symbols-outlined">mail</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="icon-button open-share"
-                                title="Compartir aliado"
-                                data-share='<?= Html::encode(json_encode($detailPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>'>
-                                <span class="material-symbols-outlined">share</span>
-                            </button>
-                            <button
-                                type="button"
-                                class="info-button open-info-modal"
-                                data-details='<?= Html::encode(json_encode($detailPayload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) ?>'>
-                                Ver información
-                            </button>
-                        </div>
-                    </div>
-                </article>
-            <?php endforeach; ?>
+                    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        <?php else: ?>
+            <div class="empty-state surface-container">
+                <p>Gestiona los beneficios desde la administración para mostrarlos aquí.</p>
+            </div>
         <?php endif; ?>
-    </div>
-</section>
-
-<section class="quote-section surface-container-high">
-    <div class="container-narrow">
-        <blockquote>
-            <strong>Nuestros Beneficios</strong><br><br>
-            Un Ecosistema de Beneficios para su Empresa.<br><br>
-            Al unirse a la Cámara de Inversionistas, obtiene acceso inmediato a un conjunto integral de herramientas diseñadas para impulsar su negocio.
-        </blockquote>
-    </div>
-</section>
-
-<section id="plantillas" class="components-section container-wide">
-    <header class="section-header">
-        <h2 class="section-title">Componentes listos para usar</h2>
-        <p class="section-subtitle">Copiar, pegar, personalizar. Todo lo que necesitas para tu próxima campaña.</p>
-        <?= Html::a('Ver todos', '#', ['class' => 'mdc-outlined-button']) ?>
-    </header>
-    <div class="component-grid">
-        <div class="component-card surface-container">
-            <h3>Notificaciones</h3>
-            <span>5 componentes</span>
-        </div>
-        <div class="component-card surface-container">
-            <h3>Facturas</h3>
-            <span>3 componentes</span>
-        </div>
-        <div class="component-card surface-container">
-            <h3>Onboarding</h3>
-            <span>4 componentes</span>
-        </div>
-        <div class="component-card surface-container">
-            <h3>Recibos</h3>
-            <span>6 componentes</span>
-        </div>
     </div>
 </section>
 
@@ -311,18 +551,6 @@ $this->title = 'La próxima generación de emails';
     </div>
 </section>
 
-<section class="integrations-section surface-container-low">
-    <div class="container-wide">
-        <h2>Integra con cualquier servicio</h2>
-        <div class="integration-grid">
-            <span class="integration-chip">Resend</span>
-            <span class="integration-chip">SendGrid</span>
-            <span class="integration-chip">AWS</span>
-            <span class="integration-chip">Postmark</span>
-        </div>
-    </div>
-</section>
-
 <section class="sponsors-section surface-container-high">
     <div class="container-wide">
         <h2>Patrocinadores</h2>
@@ -341,6 +569,102 @@ $this->title = 'La próxima generación de emails';
         </div>
     </div>
 </section>
+
+<div id="benefit-modal" class="contact-modal" data-state="closed">
+    <div class="modal-overlay"></div>
+    <div class="modal-card surface-container-high">
+        <button class="modal-close material-symbols-outlined" type="button">close</button>
+        <div class="modal-header">
+            <span class="chip chip-gradient">Beneficios</span>
+            <h3 id="benefit-modal-title">Beneficio</h3>
+        </div>
+        <div class="modal-tabs">
+            <button class="modal-tab-button active" type="button" data-tab="benefit-tab-consult">Hacer consulta sobre el beneficio</button>
+            <button class="modal-tab-button" type="button" data-tab="benefit-tab-register">Registro online</button>
+        </div>
+        <div class="modal-tab-content active" id="benefit-tab-consult">
+            <?= Html::beginForm(['/site/benefit-inquiry'], 'post', ['class' => 'benefit-form', 'id' => 'benefit-consult-form']) ?>
+            <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
+            <?= Html::hiddenInput('type', 'consult') ?>
+            <?= Html::hiddenInput('benefit_title', '', ['class' => 'benefit-title-input']) ?>
+            <div class="field">
+                <label for="benefit-consult-name">Nombre</label>
+                <input type="text" id="benefit-consult-name" name="name" required>
+            </div>
+            <div class="field">
+                <label for="benefit-consult-phone">Teléfono</label>
+                <input type="text" id="benefit-consult-phone" name="phone" required>
+            </div>
+            <div class="field">
+                <label for="benefit-consult-medium">Medio de contacto</label>
+                <select id="benefit-consult-medium" name="contact_medium" required>
+                    <option value="">Selecciona una opción</option>
+                    <option value="email">Email</option>
+                    <option value="whatsapp">WhatsApp</option>
+                </select>
+            </div>
+            <div class="field">
+                <label for="benefit-consult-subject">Consulta</label>
+                <textarea id="benefit-consult-subject" name="subject" rows="4" maxlength="500" placeholder="Escribe tu consulta" required></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="mdc-filled-button">Enviar consulta</button>
+            </div>
+            <?= Html::endForm() ?>
+        </div>
+        <div class="modal-tab-content" id="benefit-tab-register">
+            <?= Html::beginForm(['/site/benefit-inquiry'], 'post', ['class' => 'benefit-form', 'id' => 'benefit-register-form']) ?>
+            <?= Html::hiddenInput(Yii::$app->request->csrfParam, Yii::$app->request->getCsrfToken()) ?>
+            <?= Html::hiddenInput('type', 'register') ?>
+            <?= Html::hiddenInput('benefit_title', '', ['class' => 'benefit-title-input']) ?>
+            <div class="field span-1">
+                <label for="benefit-register-name">Nombre</label>
+                <input type="text" id="benefit-register-name" name="name" required>
+            </div>
+            <div class="field span-1">
+                <label for="benefit-register-phone">Teléfono</label>
+                <input type="text" id="benefit-register-phone" name="phone" required>
+            </div>
+            <div class="field span-1">
+                <label for="benefit-register-type">Tipo de comercio</label>
+                <input type="text" id="benefit-register-type" name="business_type" required>
+            </div>
+            <div class="field span-1">
+                <label for="benefit-register-trade">Nombre comercial (opcional)</label>
+                <input type="text" id="benefit-register-trade" name="business_name">
+            </div>
+            <div class="field span-1">
+                <label for="benefit-register-email">Email</label>
+                <input type="email" id="benefit-register-email" name="email" required>
+            </div>
+            <div class="field span-1">
+                <label for="benefit-register-address">Dirección física</label>
+                <input type="text" id="benefit-register-address" name="address" required>
+            </div>
+            <div class="field span-2">
+                <label>Patentado</label>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="patentado" value="si" required>
+                        Sí
+                    </label>
+                    <label>
+                        <input type="radio" name="patentado" value="no" required>
+                        No
+                    </label>
+                </div>
+            </div>
+            <div class="field span-2">
+                <label for="benefit-register-subject">Asunto</label>
+                <textarea id="benefit-register-subject" name="subject" rows="4" maxlength="500" placeholder="Describe tu solicitud (máx. 500 caracteres)" required></textarea>
+            </div>
+            <div class="modal-actions">
+                <button type="submit" class="mdc-filled-button">Enviar registro</button>
+            </div>
+            <?= Html::endForm() ?>
+        </div>
+    </div>
+</div>
 
 <div id="contact-modal" class="contact-modal" data-state="closed">
     <div class="modal-overlay"></div>

@@ -23,6 +23,7 @@ use yii\web\UploadedFile;
  * @property string|null $social_links
  * @property string|null $logo_path
  * @property bool $show_on_home
+ * @property bool $available_in_search
  * @property bool $is_active
  * @property int|null $email_template_id
  * @property int $created_at
@@ -55,10 +56,12 @@ class Business extends ActiveRecord
     public function rules(): array
     {
         return [
-            [['name', 'email'], 'required'],
+            [['name'], 'required'],
             [['description', 'social_links'], 'string'],
-            [['show_on_home', 'is_active'], 'boolean'],
+            [['show_on_home', 'is_active', 'available_in_search'], 'boolean'],
             [['email_template_id'], 'integer'],
+            [['email'], 'filter', 'filter' => 'trim'],
+            [['email'], 'default', 'value' => null],
             [['email'], 'email'],
             [['name'], 'string', 'max' => 160],
             [['slug'], 'string', 'max' => 180],
@@ -72,6 +75,7 @@ class Business extends ActiveRecord
             [['social_links'], 'default', 'value' => '[]'],
             [['is_active'], 'default', 'value' => true],
             [['show_on_home'], 'default', 'value' => false],
+            [['available_in_search'], 'default', 'value' => true],
             [['categoryIds'], 'each', 'rule' => ['integer']],
             [['socialLinksInput'], 'safe'],
             [
@@ -98,6 +102,7 @@ class Business extends ActiveRecord
             'social_links' => 'Redes sociales',
             'logo_path' => 'Logotipo',
             'show_on_home' => 'Mostrar en portada',
+            'available_in_search' => 'Disponible en el buscador',
             'is_active' => 'Activo',
             'email_template_id' => 'Plantilla de correo',
             'created_at' => 'Creado',

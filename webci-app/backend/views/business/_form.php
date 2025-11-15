@@ -23,6 +23,7 @@ use yii\widgets\ActiveForm;
     <div class="col-lg-4">
         <?= $form->field($model, 'email_template_id')->dropDownList($templateItems, ['prompt' => 'Seleccione plantilla']) ?>
         <?= $form->field($model, 'show_on_home')->checkbox() ?>
+        <?= $form->field($model, 'available_in_search')->checkbox()->hint('Desmarca para ocultarlo del buscador público.') ?>
         <?= $form->field($model, 'is_active')->checkbox() ?>
     </div>
 </div>

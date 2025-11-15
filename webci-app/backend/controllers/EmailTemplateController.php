@@ -35,54 +35,22 @@ class EmailTemplateController extends Controller
 
     public function actionIndex(): string
     {
-        $searchModel = new EmailTemplateSearch();
-        $dataProvider = $searchModel->search(Yii::$app->request->queryParams);
-
-        return $this->render('index', [
-            'searchModel' => $searchModel,
-            'dataProvider' => $dataProvider,
-        ]);
+        return $this->render('coming-soon');
     }
 
     public function actionCreate()
     {
-        $model = new EmailTemplate();
-
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            Yii::$app->session->setFlash('success', 'Plantilla creada.');
-            return $this->redirect(['index']);
-        }
-
-        return $this->render('create', [
-            'model' => $model,
-        ]);
+        throw new NotFoundHttpException('Sección disponible próximamente.');
     }
 
     public function actionUpdate(int $id)
     {
-        $model = $this->findModel($id);
-
-        if ($model->load(Yii::$app->request->post()) && $model->save()) {
-            Yii::$app->session->setFlash('success', 'Plantilla actualizada.');
-            return $this->redirect(['index']);
-        }
-
-        return $this->render('update', [
-            'model' => $model,
-        ]);
+        throw new NotFoundHttpException('Sección disponible próximamente.');
     }
 
     public function actionDelete(int $id)
     {
-        $model = $this->findModel($id);
-        if ($model->businesses) {
-            Yii::$app->session->setFlash('error', 'No se puede eliminar una plantilla asignada a aliados.');
-        } else {
-            $model->delete();
-            Yii::$app->session->setFlash('info', 'Plantilla eliminada.');
-        }
-
-        return $this->redirect(['index']);
+        throw new NotFoundHttpException('Sección disponible próximamente.');
     }
 
     protected function findModel(int $id): EmailTemplate

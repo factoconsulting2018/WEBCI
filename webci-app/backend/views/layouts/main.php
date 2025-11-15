@@ -40,6 +40,7 @@ AppAsset::register($this);
         $menuItems = [
             ['label' => 'Aliados', 'url' => ['/business/index']],
             ['label' => 'Categorías', 'url' => ['/category/index']],
+            ['label' => 'Beneficios', 'url' => ['/benefit/index']],
             ['label' => 'Patrocinadores', 'url' => ['/sponsor/index']],
             ['label' => 'Plantillas de email', 'url' => ['/email-template/index']],
             ['label' => 'Reportes', 'url' => ['/report/index']],

@@ -12,8 +12,8 @@ class BusinessSearch extends Business
     {
         return [
             [['id', 'email_template_id'], 'integer'],
-            [['name', 'slug', 'whatsapp', 'address', 'email'], 'safe'],
-            [['show_on_home', 'is_active'], 'boolean'],
+            [['name', 'slug', 'whatsapp', 'address', 'email', 'summary', 'description', 'logo_path'], 'safe'],
+            [['show_on_home', 'is_active', 'available_in_search'], 'boolean'],
         ];
     }
 
@@ -37,6 +37,7 @@ class BusinessSearch extends Business
         ]);
 
         $this->load($params);
+        $globalQuery = trim($params['q'] ?? '');
 
         if (!$this->validate()) {
             return $dataProvider;
@@ -46,11 +47,28 @@ class BusinessSearch extends Business
         $query->andFilterWhere(['email_template_id' => $this->email_template_id]);
         $query->andFilterWhere(['show_on_home' => $this->show_on_home]);
         $query->andFilterWhere(['is_active' => $this->is_active]);
+        $query->andFilterWhere(['available_in_search' => $this->available_in_search]);
 
         $query->andFilterWhere(['like', 'name', $this->name]);
         $query->andFilterWhere(['like', 'email', $this->email]);
         $query->andFilterWhere(['like', 'whatsapp', $this->whatsapp]);
         $query->andFilterWhere(['like', 'address', $this->address]);
+        $query->andFilterWhere(['like', 'summary', $this->summary]);
+        $query->andFilterWhere(['like', 'description', $this->description]);
+        $query->andFilterWhere(['like', 'slug', $this->slug]);
+
+        if ($globalQuery !== '') {
+            $query->andWhere([
+                'or',
+                ['like', 'name', $globalQuery],
+                ['like', 'email', $globalQuery],
+                ['like', 'whatsapp', $globalQuery],
+                ['like', 'address', $globalQuery],
+                ['like', 'summary', $globalQuery],
+                ['like', 'description', $globalQuery],
+                ['like', 'slug', $globalQuery],
+            ]);
+        }
 
         return $dataProvider;
     }
