@@ -3,6 +3,7 @@
 namespace frontend\controllers;
 
 use common\models\Business;
+use common\models\SiteConfig;
 use common\models\SponsorSet;
 use frontend\models\ContactBusinessForm;
 use frontend\models\ResendVerificationEmailForm;
@@ -93,11 +94,13 @@ class SiteController extends Controller
 
         $businesses = $query->all();
         $sponsorSet = SponsorSet::find()->orderBy(['id' => SORT_ASC])->one();
+        $siteConfig = SiteConfig::getCurrent();
 
         return $this->render('index', [
             'businesses' => $businesses,
             'sort' => $sort,
             'sponsors' => $sponsorSet ? $sponsorSet->getImages() : [],
+            'siteConfig' => $siteConfig,
         ]);
     }
 

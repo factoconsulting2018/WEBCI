@@ -21,7 +21,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
 <?= GridView::widget([
     'dataProvider' => $dataProvider,
-    'filterModel' => $searchModel,
+    'filterModel' => null,
     'columns' => [
         ['class' => 'yii\grid\SerialColumn'],
         'id',
@@ -35,4 +35,18 @@ $this->params['breadcrumbs'][] = $this->title;
 ]); ?>
 
 <?php Pjax::end(); ?>
+
+<div class="pagination-wrapper">
+    <?= \yii\widgets\LinkPager::widget([
+        'pagination' => $dataProvider->pagination,
+        'options' => ['class' => 'pagination justify-content-center custom-pagination'],
+        'linkOptions' => ['class' => 'page-link'],
+        'activePageCssClass' => 'active',
+        'disabledPageCssClass' => 'disabled',
+        'pageCssClass' => 'page-item',
+        'prevPageCssClass' => 'page-item',
+        'nextPageCssClass' => 'page-item',
+        'maxButtonCount' => 7,
+    ]) ?>
+</div>
 

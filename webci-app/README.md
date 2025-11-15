@@ -44,6 +44,7 @@ Servicios expuestos por defecto:
 | Admin    | http://localhost:3180   |
 | MySQL    | localhost:3309          |
 | Mailhog  | http://localhost:8028   |
+| phpMyAdmin | http://localhost:9090 |
 
 Las credenciales de la base de datos y puertos pueden ajustarse en `env/docker.env`.
 

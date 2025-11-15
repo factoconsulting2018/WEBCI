@@ -37,7 +37,8 @@ class Business extends ActiveRecord
     private array $socialLinksCache = [];
     public array $categoryIds = [];
     public string $socialLinksInput = '';
-    public ?UploadedFile $logoFile = null;
+    /** @var UploadedFile|null */
+    public $logoFile = null;
 
     public static function tableName(): string
     {
@@ -155,6 +156,14 @@ class Business extends ActiveRecord
         $this->processSocialLinksInput();
         $this->categoryIds = array_filter(array_map('intval', (array)$this->categoryIds));
 
+        $this->name = $this->toUpper($this->name);
+        $this->summary = $this->cleanText($this->summary);
+        $this->description = $this->cleanText($this->description, false);
+        $this->whatsapp = $this->toUpper($this->whatsapp);
+        $this->address = $this->toUpper($this->address);
+        $this->email = $this->toUpper($this->email);
+        $this->slug = $this->toUpper($this->slug);
+
         return true;
     }
 
@@ -164,6 +173,7 @@ class Business extends ActiveRecord
             return false;
         }
         $this->slug = $this->slug ?: Inflector::slug($this->name);
+        $this->slug = $this->toUpper($this->slug);
         $this->social_links = json_encode($this->socialLinksCache, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
         return true;
     }
@@ -249,7 +259,14 @@ class Business extends ActiveRecord
         $font = 5;
         $textWidth = imagefontwidth($font) * mb_strlen($initials);
         $textHeight = imagefontheight($font);
-        imagestring($image, $font, ($size - $textWidth) / 2, ($size - $textHeight) / 2, $initials, $textColor);
+        imagestring(
+            $image,
+            $font,
+            (int)round(($size - $textWidth) / 2),
+            (int)round(($size - $textHeight) / 2),
+            $initials,
+            $textColor
+        );
 
         ob_start();
         imagepng($image);
@@ -266,8 +283,8 @@ class Business extends ActiveRecord
         $paddingX = 12;
         $paddingY = 10;
 
-        $width = imagefontwidth($font) * mb_strlen($text) + $paddingX * 2;
-        $height = imagefontheight($font) + $paddingY * 2;
+        $width = (int)max(1, imagefontwidth($font) * mb_strlen($text) + $paddingX * 2);
+        $height = (int)max(1, imagefontheight($font) + $paddingY * 2);
         $image = imagecreatetruecolor($width, $height);
         imagesavealpha($image, true);
         $transparent = imagecolorallocatealpha($image, 0, 0, 0, 127);
@@ -279,7 +296,7 @@ class Business extends ActiveRecord
         imagerectangle($image, 0, 0, $width - 1, $height - 1, $border);
 
         $textColor = imagecolorallocate($image, 125, 211, 252);
-        imagestring($image, $font, $paddingX, $paddingY, $text, $textColor);
+        imagestring($image, $font, (int)$paddingX, (int)$paddingY, $text, $textColor);
 
         ob_start();
         imagepng($image);
@@ -303,8 +320,8 @@ class Business extends ActiveRecord
                 continue;
             }
             $parts = explode('|', $line, 2);
-            $label = trim($parts[0]);
-            $url = trim($parts[1] ?? $parts[0]);
+            $label = $this->toUpper($parts[0]);
+            $url = $this->toUpper($parts[1] ?? $parts[0]);
 
             if ($url === '') {
                 continue;
@@ -383,6 +400,30 @@ class Business extends ActiveRecord
         if (is_file($path)) {
             @unlink($path);
         }
+    }
+
+    private function toUpper($value, bool $trim = true): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = (string)$value;
+        if ($trim) {
+            $value = trim($value);
+        }
+        return $value === '' ? '' : mb_strtoupper($value);
+    }
+
+    private function cleanText($value, bool $trim = true): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = (string)$value;
+        if ($trim) {
+            $value = trim($value);
+        }
+        return $value;
     }
 }
  

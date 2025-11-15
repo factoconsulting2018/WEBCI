@@ -45,6 +45,7 @@ class SponsorSet extends ActiveRecord
         return [
             [['title'], 'string', 'max' => 120],
             [['image_one', 'image_two', 'image_three', 'image_four'], 'string', 'max' => 255],
+            [['title'], 'filter', 'filter' => fn($value) => $this->toUpper($value)],
             [
                 ['imageUploadOne', 'imageUploadTwo', 'imageUploadThree', 'imageUploadFour'],
                 'file',
@@ -125,6 +126,15 @@ class SponsorSet extends ActiveRecord
         if (is_file($path)) {
             @unlink($path);
         }
+    }
+
+    private function toUpper($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string)$value);
+        return $value === '' ? '' : mb_strtoupper($value);
     }
 }
  

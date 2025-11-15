@@ -45,6 +45,7 @@ class ContactSubmission extends ActiveRecord
             [['address'], 'string', 'max' => 255],
             [['subject'], 'string', 'max' => 180],
             [['business_id'], 'exist', 'targetClass' => Business::class, 'targetAttribute' => ['business_id' => 'id']],
+            [['fullname', 'phone', 'address', 'subject'], 'filter', 'filter' => fn($value) => $this->toUpper($value)],
         ];
     }
 
@@ -64,6 +65,15 @@ class ContactSubmission extends ActiveRecord
     public function getBusiness(): ActiveQuery
     {
         return $this->hasOne(Business::class, ['id' => 'business_id']);
+    }
+
+    private function toUpper($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string)$value);
+        return $value === '' ? '' : mb_strtoupper($value);
     }
 }
 

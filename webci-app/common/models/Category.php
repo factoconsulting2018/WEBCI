@@ -59,5 +59,28 @@ class Category extends ActiveRecord
         return $this->hasMany(Business::class, ['id' => 'business_id'])
             ->viaTable('{{%business_category}}', ['category_id' => 'id']);
     }
+
+    public function beforeValidate()
+    {
+        if (!parent::beforeValidate()) {
+            return false;
+        }
+
+        $this->name = $this->toUpper($this->name);
+        $this->description = $this->toUpper($this->description);
+        $this->slug = $this->slug ?: Inflector::slug($this->name);
+        $this->slug = $this->toUpper($this->slug);
+
+        return true;
+    }
+
+    private function toUpper($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string)$value);
+        return $value === '' ? '' : mb_strtoupper($value);
+    }
 }
 

@@ -40,6 +40,7 @@ class EmailTemplate extends ActiveRecord
             [['name'], 'string', 'max' => 120],
             [['subject'], 'string', 'max' => 180],
             [['is_default'], 'default', 'value' => false],
+            [['name', 'subject'], 'filter', 'filter' => fn($value) => $this->toUpper($value)],
         ];
     }
 
@@ -73,6 +74,15 @@ class EmailTemplate extends ActiveRecord
     public function getBusinesses(): ActiveQuery
     {
         return $this->hasMany(Business::class, ['email_template_id' => 'id']);
+    }
+
+    private function toUpper($value)
+    {
+        if ($value === null) {
+            return null;
+        }
+        $value = trim((string)$value);
+        return $value === '' ? '' : mb_strtoupper($value);
     }
 }
 

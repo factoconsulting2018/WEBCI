@@ -21,7 +21,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
 <?= GridView::widget([
     'dataProvider' => $dataProvider,
-    'filterModel' => $searchModel,
+    'filterModel' => null,
     'columns' => [
         ['class' => 'yii\grid\SerialColumn'],
         'id',
@@ -33,12 +33,10 @@ $this->params['breadcrumbs'][] = $this->title;
         'whatsapp',
         [
             'attribute' => 'show_on_home',
-            'filter' => [1 => 'Sí', 0 => 'No'],
             'value' => static fn($model) => $model->show_on_home ? 'Sí' : 'No',
         ],
         [
             'attribute' => 'is_active',
-            'filter' => [1 => 'Activo', 0 => 'Inactivo'],
             'value' => static fn($model) => $model->is_active ? 'Activo' : 'Inactivo',
         ],
         [

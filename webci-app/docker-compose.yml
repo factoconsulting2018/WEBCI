@@ -55,6 +55,22 @@ services:
       - "${MAILHOG_SMTP_PORT:-1028}:1025"
       - "${MAILHOG_UI_PORT:-8028}:8025"
 
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2
+    container_name: webci-phpmyadmin
+    depends_on:
+      - mysql
+    env_file:
+      - env/docker.env
+    environment:
+      - PMA_HOST=mysql
+      - PMA_PORT=3306
+      - PMA_USER=${DB_USER:-webci}
+      - PMA_PASSWORD=${DB_PASSWORD:-secret}
+    ports:
+      - "${PHPMYADMIN_PORT:-9090}:80"
+    restart: unless-stopped
+
 volumes:
   composer-cache:
   mysql-data:
