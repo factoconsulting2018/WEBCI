@@ -36,7 +36,7 @@ services:
       - backend
 
   camarainversionistas:
-    image: ghcr.io/yourorg/camarainversionistas:latest
+    image: ghcr.io/factoconsulting2018/camarainversionistas:latest
     container_name: app-camarainversionistas
     restart: unless-stopped
     env_file:
