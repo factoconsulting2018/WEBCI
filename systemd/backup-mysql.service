@@ -1,0 +1,16 @@
+[Unit]
+Description=Backup MySQL (Docker)
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash /root/scripts/backup_mysql.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
+
+[Install]
+WantedBy=multi-user.target
+
+
